@@ -146,7 +146,7 @@ def get_meta_from_opf(g, pecha_id):
 
 
 if __name__ == "__main__":
-    token = 'be155de50e1151f9650d6cdb99f62a0a124c41dd'
+    token = ''
     g = Github(token)
     commit_msg = 'meta updated'
     with open("catalog.csv", newline="") as csvfile:
