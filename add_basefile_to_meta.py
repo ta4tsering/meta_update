@@ -1,27 +1,34 @@
 import csv
 import re
 import yaml
+import logging
 
 from github import Github 
 from pathlib import Path
 
+logging.basicConfig(
+    filename="metadata_updated.log",
+    format="%(levelname)s: %(message)s",
+    level=logging.INFO,
+)
 
-
+def notifier(msg):
+    logging.info(msg)
 
 def update_repo(g, pecha_id, file_path, commit_msg, new_content):
     try:
         repo = g.get_repo(f"Openpecha/{pecha_id}")
         contents = repo.get_contents(f"{file_path}", ref="master")
         repo.update_file(contents.path, commit_msg, new_content, sha=contents.sha, branch="master")
-        print(f'{pecha_id} update completed..')
-    except:
-        print(f"{pecha_id} repo not found")
+        notifier( f'Pecha id :{pecha_id} updated ')
+    except Exception as e:
+        notifier( f'Pecha id :{pecha_id} not updated with error {e}')
 
 
 
 def check_volumes(meta_data, pagination_info,pecha_id):
     volumes = meta_data['source_metadata']['volumes']
-    if volumes != (None | '') :
+    if volumes != (None or '') :
         for info_num, pg_info in pagination_info.items():
             image_group = pg_info['Image_group']
             vol_num = pg_info['Vol']
@@ -29,8 +36,14 @@ def check_volumes(meta_data, pagination_info,pecha_id):
                 if vol_info['image_group_id'] == image_group:
                     vol_info['base_file'] = f"{vol_num}.txt"
                     break
+    elif volumes == '':
+        meta_data['source_metadata']['volumes'] = {}
+        meta_data['source_metadata']['author']
+        notifier( f'Pecha id :{pecha_id} volumes value changed from string to dict')
+        return meta_data
     else:
-        console.log(pech_id)
+        notifier( f'Pecha id :{pecha_id} no volumes with error {e}')
+        return None
     return meta_data
 
 def check_initial_type(initial_creation_type, meta_data, pagination_info, pecha_id):
@@ -38,8 +51,10 @@ def check_initial_type(initial_creation_type, meta_data, pagination_info, pecha_
                 meta_data['source_metadata']['volumes'] = meta_data['source_metadata']['volume']
                 del meta_data['source_metadata']['volume']
                 new_meta = check_volumes(meta_data,pagination_info,pecha_id)
-                return new_meta
-
+                if new_meta != None:
+                    return new_meta
+                else:
+                    return None
 
 def get_new_meta( meta_data, pagination_info, pecha_id):
     key = list(meta_data.keys())[0] 
@@ -47,9 +62,13 @@ def get_new_meta( meta_data, pagination_info, pecha_id):
         if meta_data['id'] != pecha_id:
             meta_data['id'] = pecha_id
             meta_data = check_initial_type(meta_data['initial_creation_type'], meta_data, pagination_info, pecha_id)
+            if meta_data == None:
+                return None
     if key == 'initial_creation_type':
         meta_data['id'] = pecha_id
-        meta_data = check_initial_type(meta_data['initial_creation_type'], meta_data, pagination_info, pecha_id)     
+        meta_data = check_initial_type(meta_data['initial_creation_type'], meta_data, pagination_info, pecha_id)
+        if meta_data == None:
+            return None     
     meta_yml = yaml.safe_dump(meta_data, default_flow_style=False, sort_keys=False,  allow_unicode=True)
     return meta_yml
 
@@ -70,11 +89,12 @@ def get_pagination_content(g, pagination_path, pecha_id, repo):
     return image_group, vol_num
 
 
-def get_pagination_info(g, pecha_id):
+def get_pagination_info(g, pecha_id, meta_data):
     layers = []
     pagination_info = {}
     cur_text = {}
-    try:
+    volumes = meta_data['source_metadata']['volume']
+    if volumes != (None or '') :
         repo = g.get_repo(f"Openpecha/{pecha_id}")
         contents = repo.get_contents(f"./{pecha_id}.opf/layers")
         num = 1
@@ -87,11 +107,11 @@ def get_pagination_info(g, pecha_id):
             pagination_info.update(cur_text)
             num += 1
             cur_text = {}
-    except:
-        print('Repo not found')
-    return pagination_info
+        return pagination_info
+    else:
+        return None
 
-def update_ebook_meta(meta_data):
+def change_ebook_meta(meta_data):
     key = list(meta_data.keys())[0] 
     if key == 'ebook_metadata':
         meta_data['id'] = pecha_id
@@ -126,21 +146,24 @@ def get_meta_from_opf(g, pecha_id):
 
 
 if __name__ == "__main__":
-    token = ''
+    token = 'be155de50e1151f9650d6cdb99f62a0a124c41dd'
     g = Github(token)
     commit_msg = 'meta updated'
-    pecha_id = "P000103"
-    file_path = f"./{pecha_id}.opf/meta.yml"
-    old_meta_data = get_meta_from_opf(g, pecha_id)
-    old_meta_data = yaml.safe_load(old_meta_data)
-    new_ebook_meta = update_ebook_meta(old_meta_data)
-    if new_ebook_meta == None:
-        pagination_info = get_pagination_info(g, pecha_id)
-        new_meta_data = get_new_meta(old_meta_data, pagination_info, pecha_id)
-        if new_meta_data != None:
-            update_repo(g, pecha_id, file_path, commit_msg, new_meta)
-    else:
-        update_repo(g, pecha_id, file_path, commit_msg, new_ebook_meta)
-    
-    print(f'INFO: {pecha_id} meta updated..')
+    with open("catalog.csv", newline="") as csvfile:
+        pechas = list(csv.reader(csvfile, delimiter=","))
+        for pecha in pechas[280:300]:
+            pecha_id = re.search("\[.+\]", pecha[0])[0][1:-1]
+            file_path = f"./{pecha_id}.opf/meta.yml"
+            old_meta_data = get_meta_from_opf(g, pecha_id)
+            old_meta_data = yaml.safe_load(old_meta_data)
+            new_ebook_meta = change_ebook_meta(old_meta_data)
+            if new_ebook_meta == None:
+                pagination_info = get_pagination_info(g, pecha_id, old_meta_data)
+                new_meta_data = get_new_meta(old_meta_data, pagination_info, pecha_id)
+                if new_meta_data != None:
+                    update_repo(g, pecha_id, file_path, commit_msg, new_meta_data)
+            else:
+                update_repo(g, pecha_id, file_path, commit_msg, new_ebook_meta)
+            
+            print(f'INFO: {pecha_id} meta updated..')
 
