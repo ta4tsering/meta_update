@@ -18,6 +18,41 @@ def update_repo(g, pecha_id, file_path, commit_msg, new_content):
         print(f"{pecha_id} repo not found")
 
 
+
+def check_volumes(meta_data, pagination_info,pecha_id):
+    volumes = meta_data['source_metadata']['volumes']
+    if volumes != (None | '') :
+        for info_num, pg_info in pagination_info.items():
+            image_group = pg_info['Image_group']
+            vol_num = pg_info['Vol']
+            for vol_id, vol_info in volumes.items():
+                if vol_info['image_group_id'] == image_group:
+                    vol_info['base_file'] = f"{vol_num}.txt"
+                    break
+    else:
+        console.log(pech_id)
+    return meta_data
+
+def check_initial_type(initial_creation_type, meta_data, pagination_info, pecha_id):
+    if initial_creation_type == 'ocr':
+                meta_data['source_metadata']['volumes'] = meta_data['source_metadata']['volume']
+                del meta_data['source_metadata']['volume']
+                new_meta = check_volumes(meta_data,pagination_info,pecha_id)
+                return new_meta
+
+
+def get_new_meta( meta_data, pagination_info, pecha_id):
+    key = list(meta_data.keys())[0] 
+    if key == 'id':
+        if meta_data['id'] != pecha_id:
+            meta_data['id'] = pecha_id
+            meta_data = check_initial_type(meta_data['initial_creation_type'], meta_data, pagination_info, pecha_id)
+    if key == 'initial_creation_type':
+        meta_data['id'] = pecha_id
+        meta_data = check_initial_type(meta_data['initial_creation_type'], meta_data, pagination_info, pecha_id)     
+    meta_yml = yaml.safe_dump(meta_data, default_flow_style=False, sort_keys=False,  allow_unicode=True)
+    return meta_yml
+
 def get_image_group_and_vol_num(pagination_content,pagination_path):
     vol_num = Path(f"{pagination_path}").name
     paginations = pagination_content['annotations'][4:]
@@ -33,6 +68,7 @@ def get_pagination_content(g, pagination_path, pecha_id, repo):
     pagination_content = yaml.safe_load(pagination_content)
     image_group, vol_num = get_image_group_and_vol_num(pagination_content, pagination_path)
     return image_group, vol_num
+
 
 def get_pagination_info(g, pecha_id):
     layers = []
@@ -55,6 +91,30 @@ def get_pagination_info(g, pecha_id):
         print('Repo not found')
     return pagination_info
 
+def update_ebook_meta(meta_data):
+    key = list(meta_data.keys())[0] 
+    if key == 'ebook_metadata':
+        meta_data['id'] = pecha_id
+        meta_data['initial_creation_type'] = 'ebook'
+        meta_data['source_metadata'] = meta_data['ebook_metadata']
+        del meta_data['ebook_metadata']
+        meta_data['source_metadata']['id'] = meta_data['source_metadata']['sku']
+        del meta_data['source_metadata']['sku']
+        web_meta = meta_data['web_metadata']
+        del meta_data['web_metadata']
+        meta_data['web_metadata'] = web_meta
+        meta_yml = yaml.safe_dump(meta_data, default_flow_style=False, sort_keys=False,  allow_unicode=True)
+        return meta_yml
+    elif key == 'source_metadata':
+        meta_data['id'] = pecha_id
+        meta_data['initial_creation_type'] = 'ebook'
+        meta_yml = yaml.safe_dump(meta_data, default_flow_style=False, sort_keys=False,  allow_unicode=True)
+        return meta_yml
+    else:
+        return None
+
+
+
 def get_meta_from_opf(g, pecha_id):
     try:
         repo = g.get_repo(f"Openpecha/{pecha_id}")
@@ -65,60 +125,22 @@ def get_meta_from_opf(g, pecha_id):
         return ''
 
 
-def check_volumes(meta_data, pagination_info):
-    volumes = meta_data['source_metadata']['volumes']
-    if volumes != None:
-        for info_num, pg_info in pagination_info.items():
-            image_group = pg_info['Image_group']
-            vol_num = pg_info['Vol']
-            for vol_id, vol_info in volumes.items():
-                if vol_info['image_group_id'] == image_group:
-                    vol_info['base_file'] = f"{vol_num}.txt"
-                    break
-    return meta_data
-
-def check_initial_type(initial_creation_type, meta_data, pagination_info):
-    if initial_creation_type == 'ocr':
-                meta_data['source_metadata']['volumes'] = meta_data['source_metadata']['volume']
-                del meta_data['source_metadata']['volume']
-                new_meta = check_volumes(meta_data,pagination_info)
-                return new_meta
-
-
-def get_new_meta( meta_data, pagination_info, pecha_id):
-    res = list(meta_data.keys())[0] 
-    if res == 'id':
-        if meta_data['id'] != pecha_id:
-            meta_data['id'] = pecha_id
-            meta_data = check_initial_type(meta_data['initial_creation_type'], meta_data, pagination_info)
-    if res == 'initial_creation_type':
-        meta_data['id'] = pecha_id
-        meta_data = check_initial_type(meta_data['initial_creation_type'], meta_data,pagination_info)     
-    if res == 'source_metadata':
-        meta_data['id'] = pecha_id
-        meta_data['initial_creation_type'] = 'ebook'
-    if res == 'ebook_metadata':
-        meta_data['id'] = pecha_id
-        meta_data['initial_creation_type'] = 'ebook'
-        meta_data['source_metadata'] = meta_data['ebook_metadata']
-        del meta_data['ebook_metadata']
-        meta_data['source_metadata']['id'] = meta_data['source_metadata']['sku']
-        del meta_data['source_metadata']['sku']
-    meta_yml = yaml.safe_dump(meta_data, default_flow_style=False, sort_keys=False,  allow_unicode=True)
-    return meta_yml
-
-
-
 if __name__ == "__main__":
-    token = "9f6de2a14c494b716bf68632d680f6d01a4fd979"
+    token = '894e1585a5b4b606f83a45684185669809cf786a'
     g = Github(token)
     commit_msg = 'meta updated'
-    pecha_id = "P008105"
+    pecha_id = "P000103"
     file_path = f"./{pecha_id}.opf/meta.yml"
     old_meta_data = get_meta_from_opf(g, pecha_id)
     old_meta_data = yaml.safe_load(old_meta_data)
-    pagination_info = get_pagination_info(g, pecha_id)
-    new_meta_data = get_new_meta(old_meta_data, pagination_info, pecha_id)
-    update_repo(g, pecha_id, file_path, commit_msg, new_meta_data)
+    new_ebook_meta = update_ebook_meta(old_meta_data)
+    if new_ebook_meta == None:
+        pagination_info = get_pagination_info(g, pecha_id)
+        new_meta_data = get_new_meta(old_meta_data, pagination_info, pecha_id)
+        if new_meta_data != None:
+            update_repo(g, pecha_id, file_path, commit_msg, new_meta)
+    else:
+        update_repo(g, pecha_id, file_path, commit_msg, new_ebook_meta)
+    
     print(f'INFO: {pecha_id} meta updated..')
 
