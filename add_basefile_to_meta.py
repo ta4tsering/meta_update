@@ -148,7 +148,7 @@ def get_meta_from_opf(g, pecha_id):
 
 if __name__ == "__main__":
 <<<<<<< HEAD
-    token = 'b9953a24355f8a275b523d9da4f2b62f1d0aed08'
+    token = ''
 =======
     token = ''
 >>>>>>> b1cbaf058c02c2be562a161309502d133a169582
