@@ -42,7 +42,7 @@ def get_work_id(brdcid):
     return work_id
 
 if __name__=="__main__":
-    token = "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"
+    token = ""
     g = Github(token)
     headers = {"Authorization": f"bearer {token}"}
     # with open("catalog.csv", newline="") as csvfile:
