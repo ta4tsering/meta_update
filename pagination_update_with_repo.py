@@ -146,7 +146,7 @@ def setup_auth(repo, org, token):
 
 
 if __name__=='__main__':
-    token = "e1cb6529dac22e62efb1df93222e757e851721b4"
+    token = ""
     g = Github(token) 
     commit_msg = "pagination updated"
     # with open("catalog.csv", newline="") as csvfile:
