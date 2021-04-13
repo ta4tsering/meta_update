@@ -90,7 +90,7 @@ def get_old_meta(repo, pecha_id):
     return meta_content
 
 if __name__ == "__main__":
-    token = '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'
+    token = ''
     g = Github(token)
     commit_msg = 'meta updated'
     with open(f'./nobase.txt') as f:
