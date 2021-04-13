@@ -54,7 +54,7 @@ def get_pagination_info(g, pecha_id):
             continue
 
 if __name__=='__main__':
-    token = "e1cb6529dac22e62efb1df93222e757e851721b4"
+    token = ""
     g = Github(token) 
 
     with open("catalog.csv", newline="") as csvfile:
