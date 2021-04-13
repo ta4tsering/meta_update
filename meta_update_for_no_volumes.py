@@ -98,7 +98,7 @@ def get_meta_from_opf(g, pecha_id):
 
 
 if __name__ == "__main__":
-    token = '167be47642f8dff28b3af0e886e81e3c9b0adeab'
+    token = ''
     g = Github(token)
     commit_msg = 'added base_file to meta'
 
