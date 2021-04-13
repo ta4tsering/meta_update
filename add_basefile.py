@@ -46,7 +46,7 @@ def get_pagination_content(pagination_path):
     return image_group, vol_num
 
 if __name__ == "__main__":
-    token = 'b9953a24355f8a275b523d9da4f2b62f1d0aed08'
+    token = ''
     g = Github(token)
     commit_msg = 'meta updated'
 
