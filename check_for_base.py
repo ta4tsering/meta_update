@@ -39,7 +39,7 @@ def check_for_base(meta, pecha_id):
 
 
 if __name__ == "__main__":
-    token = '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'
+    token = ''
     g = Github(token)
     with open("catalog.csv", newline="") as csvfile:
         pechas = list(csv.reader(csvfile, delimiter=","))
