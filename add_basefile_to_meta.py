@@ -147,11 +147,7 @@ def get_meta_from_opf(g, pecha_id):
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     token = ''
-=======
-    token = ''
->>>>>>> b1cbaf058c02c2be562a161309502d133a169582
     g = Github(token)
     commit_msg = 'meta updated'
 
